@@ -19,13 +19,19 @@ export default function Trips() {
     load();
   }, []);
 
-  // TODO: ask for confirmation before cancelling.
-  const cancel = async (id) => {
+  const [cancellingBooking, setCancellingBooking] = useState(null);
+  const [cancelLoading, setCancelLoading] = useState(false);
+
+  const confirmCancel = async (id) => {
+    setCancelLoading(true);
     try {
       await api.patch(`/bookings/${id}/cancel`);
+      setCancellingBooking(null);
       load();
     } catch (err) {
       setError(getErrorMessage(err));
+    } finally {
+      setCancelLoading(false);
     }
   };
 
@@ -54,12 +60,58 @@ export default function Trips() {
               <span className={`status status-${b.status}`}>{b.status}</span>
               <strong>{formatINR(b.totalPrice)}</strong>
               {['pending', 'confirmed'].includes(b.status) && (
-                <button className="btn btn-danger" onClick={() => cancel(b._id)}>Cancel</button>
+                <button className="btn btn-danger" onClick={() => setCancellingBooking(b)}>Cancel</button>
               )}
             </div>
           </div>
         ))}
       </div>
+
+      {cancellingBooking && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="cancel-dialog-title"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: 16,
+          }}
+        >
+          <div className="card" style={{ maxWidth: 480, width: '100%', padding: 24 }}>
+            <h3 id="cancel-dialog-title" style={{ margin: '0 0 12px' }}>Confirm Cancellation</h3>
+            <p>
+              Are you sure you want to cancel your trip to <strong>{cancellingBooking.listing?.title || 'this stay'}</strong>?
+            </p>
+            <p className="muted small" style={{ margin: '8px 0 20px' }}>
+              Dates: {formatDate(cancellingBooking.checkIn)} → {formatDate(cancellingBooking.checkOut)} ({cancellingBooking.nights} night{cancellingBooking.nights > 1 ? 's' : ''})
+            </p>
+            <div className="row" style={{ justifyContent: 'flex-end', gap: 12 }}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setCancellingBooking(null)}
+                disabled={cancelLoading}
+              >
+                Keep Booking
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => confirmCancel(cancellingBooking._id)}
+                disabled={cancelLoading}
+              >
+                {cancelLoading ? 'Cancelling...' : 'Yes, Cancel Trip'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
