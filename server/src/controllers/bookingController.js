@@ -108,3 +108,74 @@ export const updateBookingStatus = asyncHandler(async (req, res) => {
   await booking.save();
   res.json(booking);
 });
+
+// GET /api/bookings/host/stats
+export const getHostStats = asyncHandler(async (req, res) => {
+  const myListings = await Listing.find({ host: req.user._id }).select('_id');
+  const listingIds = myListings.map((l) => l._id);
+
+  const now = new Date();
+  const next7Days = new Date();
+  next7Days.setDate(next7Days.getDate() + 7);
+
+  const [bookingStats, ratingStats] = await Promise.all([
+    Booking.aggregate([
+      { $match: { listing: { $in: listingIds } } },
+      {
+        $group: {
+          _id: null,
+          totalEarnings: {
+            $sum: {
+              $cond: [{ $eq: ['$status', 'completed'] }, '$totalPrice', 0],
+            },
+          },
+          upcomingCheckIns: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$status', 'confirmed'] },
+                    { $gte: ['$checkIn', now] },
+                    { $lte: ['$checkIn', next7Days] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          pendingRequests: {
+            $sum: {
+              $cond: [{ $eq: ['$status', 'pending'] }, 1, 0],
+            },
+          },
+        },
+      },
+    ]),
+    Listing.aggregate([
+      { $match: { host: req.user._id, reviewCount: { $gt: 0 } } },
+      {
+        $group: {
+          _id: null,
+          avgRating: { $avg: '$avgRating' },
+        },
+      },
+    ]),
+  ]);
+
+  const stats = bookingStats[0] || {
+    totalEarnings: 0,
+    upcomingCheckIns: 0,
+    pendingRequests: 0,
+  };
+
+  const avgRating = ratingStats[0] ? Math.round(ratingStats[0].avgRating * 10) / 10 : 0;
+
+  res.json({
+    totalEarnings: stats.totalEarnings,
+    upcomingCheckIns: stats.upcomingCheckIns,
+    pendingRequests: stats.pendingRequests,
+    averageRating: avgRating,
+  });
+});
+
