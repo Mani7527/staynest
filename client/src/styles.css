@@ -79,6 +79,26 @@ label { display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; colo
 .success { color: var(--success); }
 .loader { text-align: center; color: var(--muted); padding: 40px; }
 
+/* Skeleton loaders */
+.skeleton {
+  background: #eee6dc;
+  background: linear-gradient(90deg, #eee6dc 25%, #f7f2ec 50%, #eee6dc 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.skeleton-card { pointer-events: none; }
+.skeleton-img { aspect-ratio: 4 / 3; width: 100%; border-radius: 0; }
+.skeleton-line { height: 14px; margin-top: 4px; }
+.skeleton-line.title { height: 18px; width: 75%; }
+.skeleton-line.subtitle { width: 50%; }
+.skeleton-line.badge { height: 18px; width: 60px; border-radius: 999px; }
+.skeleton-line.price { height: 16px; width: 40%; }
+
 .hero-img { width: 100%; max-height: 460px; object-fit: cover; border-radius: var(--radius); margin: 16px 0; }
 .detail-layout { display: grid; grid-template-columns: 1fr 360px; gap: 40px; align-items: start; }
 .detail-layout h2 { text-transform: capitalize; }
